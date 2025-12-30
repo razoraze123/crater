@@ -14,37 +14,39 @@ services:
     volumes:
       - ./:/var/www
       - ./docker-compose/php/uploads.ini:/usr/local/etc/php/conf.d/uploads.ini:rw,delegated
-    networks:
-      - crater
+    environment:
+      - DB_HOST=db
+      - DB_DATABASE=crater
+      - DB_USERNAME=crater
+      - DB_PASSWORD=crater_pass
+    depends_on:
+      - db
 
   db:
-    image: mariadb
+    image: mariadb:10.5
     restart: always
-    volumes:
-      - db:/var/lib/mysql
-      # If you want to persist data on the host, comment the line above this one...
-      # and uncomment the line under this one.
-      #- ./docker-compose/db/data:/var/lib/mysql:rw,delegated
     environment:
       MYSQL_USER: crater
-      MYSQL_PASSWORD: crater
+      MYSQL_PASSWORD: crater_pass
       MYSQL_DATABASE: crater
-      MYSQL_ROOT_PASSWORD: crater
-    ports:
-      - '33006:3306'
-    networks:
-      - crater
+      MYSQL_ROOT_PASSWORD: crater_root_pass
+    volumes:
+      - ./db_data:/var/lib/mysql
 
   nginx:
     image: nginx:1.17-alpine
     restart: unless-stopped
-    ports:
-      - 80:80
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.crater.rule=Host(`crater.nordikforge.com`)"
+      - "traefik.http.routers.crater.entrypoints=websecure"
+      - "traefik.http.routers.crater.tls.certresolver=myresolver"
+      - "traefik.http.services.crater.loadbalancer.server.port=80"
     volumes:
       - ./:/var/www
       - ./docker-compose/nginx:/etc/nginx/conf.d/
-    networks:
-      - crater
+    depends_on:
+      - app
 
   cron:
     build:
@@ -52,12 +54,10 @@ services:
       dockerfile: ./docker-compose/cron.dockerfile
     volumes:
       - ./:/var/www
-    networks:
-      - crater
-
-volumes:
-  db:
+    depends_on:
+      - app
 
 networks:
-  crater:
-    driver: bridge
+  default:
+    name: web_network
+    external: true
