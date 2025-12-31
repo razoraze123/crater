@@ -4,7 +4,7 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
-import * as heroIcons from '@heroicons/vue/outline'
+import heroIcons from './icons-map.js'
 
 const isLoaded = ref(false)
 
